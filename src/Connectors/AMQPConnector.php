@@ -1,11 +1,11 @@
 <?php
 
-namespace PatPat\MessageQueue\Connectors;
+namespace RuiXu\MessageQueue\Connectors;
 
 use Illuminate\Queue\Connectors\ConnectorInterface;
 use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
-use PatPat\MessageQueue\Drivers\AMQP;
+use RuiXu\MessageQueue\Drivers\AMQP;
 
 class AMQPConnector implements ConnectorInterface
 {

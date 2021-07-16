@@ -1,6 +1,6 @@
 <?php
 
-namespace PatPat\MessageQueue\Traits;
+namespace RuiXu\MessageQueue\Traits;
 
 use ErrorException;
 use Exception;

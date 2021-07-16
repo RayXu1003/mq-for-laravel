@@ -1,6 +1,6 @@
 <?php
 
-namespace PatPat\MessageQueue;
+namespace RuiXu\MessageQueue;
 
 use Illuminate\Support\ServiceProvider;
 
