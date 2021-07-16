@@ -1,0 +1,24 @@
+{
+    "name": "patpat/mq-for-laravel",
+    "description": "给钉钉机器人发消息",
+    "keywords": [
+        "MessageQueue"
+    ],
+    "homepage": "https://www.patpat.com",
+    "type": "package",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Bruce",
+            "email": "bruce.he@patpat.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "PatPat\\MessageQueue\\": "src/"
+        }
+    }
+}
