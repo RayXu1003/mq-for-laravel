@@ -1,6 +1,6 @@
 {
-    "name": "patpat/mq-for-laravel",
-    "description": "给钉钉机器人发消息",
+    "name": "ruixu/mq-for-laravel",
+    "description": "封装rabbitMQ，门面调用",
     "keywords": [
         "MessageQueue"
     ],
@@ -9,8 +9,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Bruce",
-            "email": "bruce.he@patpat.com"
+            "name": "Rex",
+            "email": "rui.xu@patpat.com"
         }
     ],
     "require": {
@@ -18,7 +18,7 @@
     },
     "autoload": {
         "psr-4": {
-            "PatPat\\MessageQueue\\": "src/"
+            "RuiXu\\MessageQueue\\": "src/"
         }
     }
 }
