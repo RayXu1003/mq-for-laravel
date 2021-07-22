@@ -4,8 +4,12 @@ namespace RuiXu\MessageQueue\Traits;
 
 use ErrorException;
 use Exception;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
+use PhpAmqpLib\Exception\AMQPTimeoutException;
+use PhpAmqpLib\Exception\AMQPException;
 use PhpAmqpLib\Wire\AMQPTable;
 use PhpAmqpLib\Message\AMQPMessage;
+use Illuminate\Support\Facades\Log;
 
 trait AMQPQueueTrait {
 
@@ -15,9 +19,9 @@ trait AMQPQueueTrait {
     protected $declareBindQueue;
     protected $sleepOnError;
 
-    protected $queueParameters;
+    protected $queueParams;
     protected $queueArguments;
-    protected $configExchange;
+    protected $exchangeParams;
 
     private $declaredExchanges = [];
     private $declaredQueues = [];
@@ -25,64 +29,53 @@ trait AMQPQueueTrait {
     private $retryAfter = null;
     private $correlationId = null;
 
-    public function size($queue = null)
-    {
+    public function size($queue = null){
         list(, $messageCount) = $this->channel->queue_declare($this->getQueueName($queue), true);
 
         return $messageCount;
     }
 
-    public function getChannel()
-    {
+    public function getChannel(){
         return $this->connection->channel();
     }
 
-    private function declareQueue($route)
-    {
-        $routeMap = [];
-        foreach ($route as $exchange => $queues)
-        {
+    private function declareQueue($route){
+        foreach ($route as $exchange => $queues) {
             if ($this->declareExchange && !in_array($exchange, $this->declaredExchanges, true)) {
                 // declare exchange
                 $this->channel->exchange_declare(
                     $exchange,
-                    $this->configExchange['type'],
-                    $this->configExchange['passive'],
-                    $this->configExchange['durable'],
-                    $this->configExchange['auto_delete']
+                    $this->exchangeParams['type'],
+                    $this->exchangeParams['passive'],
+                    $this->exchangeParams['durable'],
+                    $this->exchangeParams['auto_delete']
                 );
 
                 $this->declaredExchanges[] = $exchange;
             }
 
             $queues = is_array($queues) ? $queues : [$queues];
-            foreach ($queues as $queue)
-            {
+            foreach ($queues as $queue) {
                 if ($this->declareBindQueue && !in_array($queue, $this->declaredQueues, true)) {
                     // declare queue
                     $this->channel->queue_declare(
                         $queue,
-                        $this->queueParameters['passive'],
-                        $this->queueParameters['durable'],
-                        $this->queueParameters['exclusive'],
-                        $this->queueParameters['auto_delete'],
+                        $this->queueParams['passive'],
+                        $this->queueParams['durable'],
+                        $this->queueParams['exclusive'],
+                        $this->queueParams['auto_delete'],
                         false,
                         new AMQPTable($this->queueArguments)
                     );
+
+                    // binding
+                    $binding_key = $this->bindingMap[$queue] ?: '';
+                    $this->channel->queue_bind($queue, $exchange, $binding_key);
+
                     $this->declaredQueues[] = $queue;
-                    $this->channel->queue_bind($queue, $exchange, '');
                 }
             }
-
-            if (is_array($queues)) {
-                $routeMap[$exchange] = reset($queues);
-            } else {
-                $routeMap[$exchange] = $queues;
-            }
-
         }
-
-        return $routeMap;
     }
 
     private function declareDelayedQueue($route, $delay)
@@ -98,10 +91,10 @@ trait AMQPQueueTrait {
             if ($this->declareExchange && !in_array($exchange, $this->declaredExchanges, true)) {
                 $this->channel->exchange_declare(
                     $exchange,
-                    $this->configExchange['type'],
-                    $this->configExchange['passive'],
-                    $this->configExchange['durable'],
-                    $this->configExchange['auto_delete']
+                    $this->exchangeParams['type'],
+                    $this->exchangeParams['passive'],
+                    $this->exchangeParams['durable'],
+                    $this->exchangeParams['auto_delete']
                 );
             }
 
@@ -113,10 +106,10 @@ trait AMQPQueueTrait {
                     // declare queue
                     $this->channel->queue_declare(
                         $queue,
-                        $this->queueParameters['passive'],
-                        $this->queueParameters['durable'],
-                        $this->queueParameters['exclusive'],
-                        $this->queueParameters['auto_delete'],
+                        $this->queueParams['passive'],
+                        $this->queueParams['durable'],
+                        $this->queueParams['exclusive'],
+                        $this->queueParams['auto_delete'],
                         false,
                         new AMQPTable($this->queueArguments)
                     );
@@ -135,10 +128,10 @@ trait AMQPQueueTrait {
 
                 $this->channel->queue_declare(
                     $delay_queue,
-                    $this->queueParameters['passive'],
-                    $this->queueParameters['durable'],
-                    $this->queueParameters['exclusive'],
-                    $this->queueParameters['auto_delete'],
+                    $this->queueParams['passive'],
+                    $this->queueParams['durable'],
+                    $this->queueParams['exclusive'],
+                    $this->queueParams['auto_delete'],
                     false,
                     new AMQPTable($queueArguments)
                 );
@@ -153,53 +146,91 @@ trait AMQPQueueTrait {
         return $routeMap;
     }
 
-    public function pushRaw($payload, $exchange = null, array $options = [])
-    {
+    public function pushRaw($payload, $routing_key, $exchange = null, array $options = []){
         try {
-            if (is_array($payload) || is_object($payload)) {
-                $payload = json_encode($payload);
-            }
             $exchange = $this->getExchangeName($exchange);
             $route = $this->getRouteByExchange($exchange);
             if (isset($options['delay']) && $options['delay'] > 0) {
-                $routeMap = $this->declareDelayedQueue($route, $options['delay']);
+                $this->declareDelayedQueue($route, $options['delay']);
             } else {
-                $routeMap = $this->declareQueue($route);
+                $this->declareQueue($route);
             }
 
-            $headers = [
-                'Content-Type' => 'application/json',
-                'delivery_mode' => 2,
-            ];
-
-            if ($this->retryAfter !== null) {
-                $headers['application_headers'] = [self::ATTEMPT_COUNT_HEADERS_KEY => ['I', $this->retryAfter]];
+            // 发布消息
+            $message = $this->ProduceAMQPMessage($payload);
+            if ('confirm' == $this->model) {
+                $this->publishConfirm($message, $exchange, $routing_key);
+            } elseif ('return' == $this->model) {
+                $this->publishReturn($message, $exchange, $routing_key);
+            } else {
+                $this->channel->basic_publish($message, $exchange, $routing_key);
             }
 
-            // push job to a queue
-            $message = new AMQPMessage($payload, $headers);
-
-            $correlationId = $this->getCorrelationId();
-            $message->set('correlation_id', $correlationId);
-
-            // push task to a queue
-            $this->channel->basic_publish($message, $exchange, !empty($routeMap[$exchange]) ? $routeMap[$exchange] : '');
-
-            return $correlationId;
-        } catch (ErrorException $exception) {
-            throw $exception;
+            return $message->has('correlation_id') ? $message->get('correlation_id') : null;
+        } catch (ErrorException $e) {
+            Log::error('[ErrorException] ' . $e->getMessage());
+            throw $e;
+            return null;
+        } catch (AMQPRuntimeException $e) {
+            Log::error('[RuntimeException] ' . $e->getMessage());
+            throw $e;
+            return null;
+        } catch (AMQPTimeoutException $e) {
+            Log::error('[TimeoutException] ' . $e->getMessage());
+            throw $e;
+            return null;
+        } catch (AMQPException $e) {
+            Log::error('[AMQPException] ' . $e->getMessage());
+            throw $e;
+            return null;
+        } catch (\Exception $e) {
+            Log::error('[Exception] ' . $e->getMessage());
+            throw $e;
             return null;
         }
     }
 
-    public function getExchangeByQueue($queue='')
-    {
-        if (empty($queue) || $this->defaultQueue==$queue) {
-            return $this->defaultExchange;
-        }
-        return !empty($this->routeMap[$queue]) ? $this->routeMap[$queue] : null;
+    public function publishConfirm($message, $exchange, $routing_key){
+        //$this->channel->confirm_select();
+
+        $this->channel->set_ack_handler($this->ack_handler_callback());
+
+        // nack，rabbitMQ内部错误时触发
+        $this->channel->set_nack_handler($this->nack_handler_callback($message));
+
+        $this->channel->basic_publish($message, $exchange, $routing_key);
+
+        $this->channel->wait_for_pending_acks();
+
+        return $message;
     }
 
+    public function publishReturn($message, $exchange, $routing_key){
+        //$this->channel->confirm_select();
+
+        // 成功到达交换机时执行
+        $this->channel->set_ack_handler($this->ack_handler_callback());
+
+        // nack，rabbitMQ内部错误时触发
+        $this->channel->set_nack_handler($this->nack_handler_callback($message));
+
+        // 模拟时可以删除queue
+        $this->channel->set_return_listener($this->return_listen_callback($message));
+
+        // 设置mandatory=true，监听路由不可达时回调set_return_lister()处理
+        $this->channel->basic_publish($message, $exchange, $routing_key, true, false);
+
+        $this->channel->wait_for_pending_acks_returns();
+
+        return $message;
+    }
+
+    /**
+     * get route by exchange, if not return empty route
+     *
+     * @param string $exchange
+     * @return array
+     */
     public function getRouteByExchange($exchange = '')
     {
         $exchange = $this->getExchangeName($exchange);
@@ -209,18 +240,21 @@ trait AMQPQueueTrait {
     public function getRouteByQueue($queue = '')
     {
         $route = [];
-        foreach ($this->routeMap as $exchange => $queues)
-        {
-            if (
-                (is_array($queues) && in_array($queue, $queues)) ||
-                $queue == $queues
-            ) {
+        foreach ($this->routeMap as $exchange => $queues) {
+            if ((is_array($queues) && in_array($queue, $queues)) || $queue == $queues) {
                 $route[$exchange] = $queues;
             }
         }
+
         return $route;
     }
 
+    /**
+     * get exchange
+     *
+     * @param $exchange
+     * @return mixed
+     */
     public function getExchangeName($exchange)
     {
         return $exchange ?: $this->defaultExchange;
@@ -250,10 +284,89 @@ trait AMQPQueueTrait {
 
     /**
      * 获取当前消费标识
-     * @author leesenlen
+     *
+     * @param $queue
+     * @return string
      */
-    public function getConsumerTag()
+    public function getConsumerTag($queue)
     {
-        return config('app.name').'_'.getmypid();
+        return $queue . '_' . getmypid();
+    }
+
+    /**
+     * 设置消息属性
+     *
+     * @return array
+     */
+    public function setMsgProperties(){
+        $properties = [
+            'Content-Type'   => 'application/json',
+            'delivery_mode'  => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+            'correlation_id' => $this->getCorrelationId(),
+        ];
+
+        if ($this->retryAfter !== null) {
+            $properties['application_headers'] = [self::ATTEMPT_COUNT_HEADERS_KEY => ['I', $this->retryAfter]];
+        }
+
+        return $properties;
+    }
+
+    /**
+     * produce AMQPMessage
+     *
+     * @param $payload
+     * @return AMQPMessage
+     */
+    public function ProduceAMQPMessage($payload){
+        if (is_array($payload) || is_object($payload)) {
+            $payload = json_encode($payload);
+        }
+
+        return new AMQPMessage($payload, $this->setMsgProperties());
+    }
+
+
+    public function ack_handler_callback(){
+        return function(AMQPMessage $msg){
+            $ack = sprintf('Message[%s] ack, with content:%s, correlation_id:%s' . PHP_EOL,
+                $msg->getDeliveryTag(),
+                $msg->body,
+                $msg->has('correlation_id') ? $msg->get('correlation_id') : '0'
+            );
+            echo $ack;
+            Log::info($ack);
+        };
+    }
+
+    public function nack_handler_callback($message){
+        return function(AMQPMessage $msg) use ($message){
+            $message->set('correlation_id', null);
+
+            $nack = sprintf('Message[%s] ack, with content:%s, correlation_id:%s' . PHP_EOL,
+                $msg->getDeliveryTag(),
+                $msg->body,
+                $msg->has('correlation_id') ? $msg->get('correlation_id') : '0'
+            );
+            echo $nack;
+            Log::info($nack);
+        };
+    }
+
+    public function return_listen_callback($message){
+        return function($reply_code, $reply_text, $exchange, $routing_key, AMQPMessage $msg) use ($message){
+            $message->set('correlation_id', null);
+
+            $return = sprintf('Message enqueue failed, with content:%s, correlation_id:%s, reply_code:%s, reply_text:%s, exchange:%s, routing_key:%s' . PHP_EOL,
+                $msg->getBody(),
+                $msg->get('correlation_id'),
+                $reply_code,
+                $reply_text,
+                $exchange,
+                $routing_key
+            );
+            echo $return;
+            Log::error($return);
+        };
     }
 }

@@ -32,7 +32,7 @@ abstract class MessageQueueContract
     /**
      * push一条消息
      */
-    abstract public function push($message, $queue = null, $option=[]);
+    abstract public function push($message, $routing_key = '', $exchange = null, $option = []);
 
     /**
      * push一条延时消息
@@ -42,12 +42,12 @@ abstract class MessageQueueContract
     /**
      * 弹出一条消息
      */
-    abstract public function pop($queue = null, $option=[]);
+    abstract public function pop($queue = null);
 
     /**
      * 指定闭包回调函数来消费队列
      */
-    abstract public function consume($cb, $queue = null, $is_ack = true, $option=[]);
+    abstract public function consume($queue = null, $is_ack = true, $callback);
 
     /**
      * 和consume配合使用，启动消费

@@ -1,5 +1,5 @@
 {
-    "name": "ruixu/mq-for-laravel",
+    "name": "rex/mq-for-laravel",
     "description": "封装rabbitMQ，门面调用",
     "keywords": [
         "MessageQueue"
@@ -19,7 +19,7 @@
     "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "RuiXu\\MessageQueue\\": "src/"
+            "Rex\\MessageQueue\\": "src/"
         }
     }
 }
