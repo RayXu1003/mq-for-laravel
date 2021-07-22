@@ -1,8 +1,8 @@
 <?php
 
-namespace RuiXu\MessageQueue;
+namespace Rex\MessageQueue;
 
-use RuiXu\MessageQueue\Drivers\AMQP;
+use Rex\MessageQueue\Drivers\AMQP;
 use Illuminate\Support\Facades\Facade;
 
 

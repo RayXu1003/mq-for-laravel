@@ -60,12 +60,12 @@ return [
 ```
 'providers' => [
 	// MQ
-	\RuiXu\MessageQueue\MQServiceProvider::class,
+	\Rex\MessageQueue\MQServiceProvider::class,
 ],
 
 'aliases' => [
 	// MQ
-   'MQ' => \RuiXu\MessageQueue\MQFacade::class,
+   'MQ' => \Rex\MessageQueue\MQFacade::class,
 ],
 ```
 

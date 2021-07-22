@@ -1,6 +1,6 @@
 <?php
 
-namespace RuiXu\MessageQueue\Traits;
+namespace Rex\MessageQueue\Traits;
 
 use ErrorException;
 use Exception;

@@ -1,6 +1,6 @@
 <?php
 
-namespace RuiXu\MessageQueue\Contracts;
+namespace Rex\MessageQueue\Contracts;
 
 use Closure;
 use DateInterval;

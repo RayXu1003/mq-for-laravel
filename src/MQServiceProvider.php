@@ -1,6 +1,6 @@
 <?php
 
-namespace RuiXu\MessageQueue;
+namespace Rex\MessageQueue;
 
 use Illuminate\Support\ServiceProvider;
 

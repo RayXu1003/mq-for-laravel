@@ -1,9 +1,9 @@
 <?php
 
-namespace RuiXu\MessageQueue\Drivers;
+namespace Rex\MessageQueue\Drivers;
 
-use RuiXu\MessageQueue\Contracts\MessageQueueContract;
-use RuiXu\MessageQueue\Traits\AMQPQueueTrait;
+use Rex\MessageQueue\Contracts\MessageQueueContract;
+use Rex\MessageQueue\Traits\AMQPQueueTrait;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
