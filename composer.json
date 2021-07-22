@@ -1,6 +1,6 @@
 {
     "name": "rex/mq-for-laravel",
-    "description": "封装rabbitMQ，门面调用",
+    "description": "Laravel Facade的形式定义RabbitMQ",
     "keywords": [
         "MessageQueue"
     ],
