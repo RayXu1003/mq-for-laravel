@@ -59,13 +59,13 @@ return [
 
 ```
 'providers' => [
-	// MQ
-	\Rex\MessageQueue\MQServiceProvider::class,
+    // MQ
+    \Rex\MessageQueue\MQServiceProvider::class,
 ],
 
 'aliases' => [
-	// MQ
-   'MQ' => \Rex\MessageQueue\MQFacade::class,
+    // MQ
+    'MQ' => \Rex\MessageQueue\MQFacade::class,
 ],
 ```
 
@@ -78,15 +78,15 @@ return [
 use MQ;
 
 try {
-	$mq = MQ::connection('default');
-	// 若关心消息丢失情况，开启confirm模式或return模式，但会影响速率；不关心则不调用
-	$mq->setModel('confirm');
-	// 发送消息
-	$data = ['test' => 'value'];	// 数组格式
-	$routing_key = 'rex.test';      // 强制使用topic模式，需指定routing_key
-	$correlation_id = $mq->push($data, $routing_key);     // correlation_id为空代表消息丢失
+    $mq = MQ::connection('default');
+    // 若关心消息丢失情况，开启confirm模式或return模式，但会影响速率；不关心则不调用
+    $mq->setModel('confirm');
+    // 发送消息
+    $data = ['test' => 'value'];	// 数组格式
+    $routing_key = 'rex.test';      // 强制使用topic模式，需指定routing_key
+    $correlation_id = $mq->push($data, $routing_key);     // correlation_id为空代表消息丢失
 } catch (\Exception $e) {
-	echo $e->getMessage();
+    echo $e->getMessage();
 }
 
 ```
@@ -103,12 +103,12 @@ $channel = MQ::connection('default');
 # $callback需返回true/false，队列才能明确是否删除消息    
 #=================================================
 $channel->consume($queue = '', $is_ack = true, function($message){
-	try {
-		echo $message->getBody() . PHP_EOL;
-		return true;	// 回调为true，队列才删除消息
-	} catch (\Exception $e) {
-		return false;
-	}	
+    try {
+        echo $message->getBody() . PHP_EOL;
+        return true;	// 回调为true，队列才删除消息
+    } catch (\Exception $e) {
+        return false;
+    }	
 });
 
 #=================================================
@@ -130,8 +130,8 @@ $channel = MQ::connection('default');
 # $message可以为空，默认ack最近一条message
 #=================================================
 while ($channel->size($queue) > 0) {
-	$message = $channel->pop($queue);
-	$channel->ack($queue, $message);
+    $message = $channel->pop($queue);
+    $channel->ack($queue, $message);
 }
 ```
 
