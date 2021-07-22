@@ -135,7 +135,8 @@ while ($channel->size($queue) > 0) {
 }
 ```
 
-
+## 其它
+* please make sure you upgrade to Composer 2+.
 
 
 
