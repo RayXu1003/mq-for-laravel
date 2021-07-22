@@ -16,7 +16,6 @@
     "require": {
         "php": ">=5.5.9"
     },
-    "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
             "Rex\\MessageQueue\\": "src/"
