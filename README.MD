@@ -2,7 +2,8 @@
 
 ## 更新
 
-- 第一次正式提交
+- 增加高可用策略配置命令
+- 增加延迟队列插件（RabbitMQ 3.7+以上适用）
 
 ## 配置
 
@@ -15,7 +16,7 @@ return [
 
     'connections' => [
 
-		 // 业务名称
+        // 业务名称
         'default' => [
             'driver' => 'amqp',
 
@@ -49,6 +50,49 @@ return [
                 'mms.cc.queue' => 'rex.#',
                 'mms.cc.queue2' => 'rex2.#',
                 'mms.cc.queue3' => 'rex3.#'
+            ],
+        ],
+        
+        // 死信
+        'dlx' => [
+            'driver' => 'amqp',
+
+            'host'     => env('AMQP_HOST', '127.0.0.1'),
+            'port'     => env('AMQP_PORT', 5672),
+            'login'    => env('AMQP_USER', 'admin'),
+            'password' => env('AMQP_PASS', null),
+            'vhost'    => env('AMQP_VHOST', '/'),
+
+            // 定义死信交换器类型
+            'exchange_params' => [
+                'type' => 'fanout',
+            ],
+
+            'default_exchange' => 'dlx.exchange',
+            'default_queue'    => 'dlx.queue',
+
+            // exchange - queues maps
+            'route' => [
+                'dlx.exchange' => 'dlx.queue'
+            ],
+        ],
+        
+        // 延迟（需安装插件）
+        'delayed' => [
+            'driver' => 'amqp',
+
+            'host'     => env('AMQP_HOST', '127.0.0.1'),
+            'port'     => env('AMQP_PORT', 5672),
+            'login'    => env('AMQP_USER', 'admin'),
+            'password' => env('AMQP_PASS', null),
+            'vhost'    => env('AMQP_VHOST', '/'),
+
+            'default_exchange' => 'delayed.exchange',
+            'default_queue'    => 'delayed.queue',
+
+            // exchange - queues maps
+            'route' => [
+                'delayed.exchange' => 'delayed.queue'
             ],
         ],
     ],
@@ -85,6 +129,24 @@ try {
     $data = ['test' => 'value'];	// 数组格式
     $routing_key = 'rex.test';      // 强制使用topic模式，需指定routing_key
     $correlation_id = $mq->push($data, $routing_key);     // correlation_id为空代表消息丢失
+} catch (\Exception $e) {
+    echo $e->getMessage();
+}
+
+```
+
+* 生产延迟消息
+
+```
+use MQ;
+
+try {
+    $mq = MQ::connection('delayed'); 
+    $mq->setModel('confirm'); // 延迟消息会暂存在exchange中，return模式无效
+    // 发送消息
+    $data = ['test' => 'value'];
+    $routing_key = 'rex.test';  // 建议指定routing_key，方便消费脚本区分
+    $correlation_id = $mq->later('10', $data, $routing_key); //correlation_id为空代表消息丢失
 } catch (\Exception $e) {
     echo $e->getMessage();
 }
@@ -135,8 +197,13 @@ while ($channel->size($queue) > 0) {
 }
 ```
 
-## 其它
+## 其它重要说明
 * please make sure you upgrade to Composer 2+.
+* 设置rabbitMQ高可用策略 
+```
+rabbitmqctl set_policy -p / ha "^" '{"ha-mode":"all", "ha-sync-mode":"automatic"}'
+```
+* [延迟队列官网插件](https://www.rabbitmq.com/community-plugins.html)
 
 
 

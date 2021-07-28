@@ -89,9 +89,9 @@ class AMQP extends MessageQueueContract
         return $this->pushRaw($message, $routing_key, $exchange, $option);
     }
 
-    public function later($delay, $message, $exchange = null, $option = []){
+    public function later($delay, $message, $routing_key = '', $exchange = null, $option = []){
         $option['delay'] = $this->secondsUntil($delay);
-        return $this->pushRaw($message, $exchange, $option);
+        return $this->pushRaw($message, $routing_key, $exchange, $option);
     }
 
     /**
@@ -112,7 +112,8 @@ class AMQP extends MessageQueueContract
         if ($message instanceof AMQPMessage) {
             $this->lastMessages[$queue] = $message;
             $this->lastMessage = $message;
-            return $message->getBody();
+
+            return $message;
         } else {
             $this->lastMessages[$queue] = null;
             $this->lastMessage = null;
@@ -187,7 +188,7 @@ class AMQP extends MessageQueueContract
         $queue = $this->getQueueName($queue);
         $cTag  = $this->getConsumerTag($queue);
 
-        //$this->channel->basic_qos(null, 1, null);
+        $this->channel->basic_qos(null, 1, null);
         $this->channel->basic_consume($queue, $cTag, false, false, false, false, function($message) use ($callback, $is_ack) {
             $result = call_user_func($callback, $message);
             if ($is_ack && $result) {
