@@ -123,12 +123,20 @@ use MQ;
 
 try {
     $mq = MQ::connection('default');
-    // 若关心消息丢失情况，开启confirm模式或return模式，但会影响速率；不关心则不调用
+
+    // 开启confirm或return模式，会影响速率；不关心消息丢失则屏蔽
     $mq->setModel('confirm');
-    // 发送消息
-    $data = ['test' => 'value'];	// 数组格式
-    $routing_key = 'rex.test';      // 强制使用topic模式，需指定routing_key
-    $correlation_id = $mq->push($data, $routing_key);     // correlation_id为空代表消息丢失
+
+    /**
+     *  发送消息
+     *
+     *  array $data 消息
+     *  string $routing_key 默认topic模式，需指定routing_key
+     *  return correlation_id 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
+     */
+    $data = ['key' => 'value'];
+    $rk   = 'routing.key';
+    $correlation_id = $mq->push($data, $rk);
 } catch (\Exception $e) {
     echo $e->getMessage();
 }
@@ -141,12 +149,22 @@ try {
 use MQ;
 
 try {
-    $mq = MQ::connection('delayed'); 
-    $mq->setModel('confirm'); // 延迟消息会暂存在exchange中，return模式无效
-    // 发送消息
-    $data = ['test' => 'value'];
-    $routing_key = 'rex.test';  // 建议指定routing_key，方便消费脚本区分
-    $correlation_id = $mq->later('10', $data, $routing_key); //correlation_id为空代表消息丢失
+    $mq = MQ::connection('delayed');
+
+    // 延迟消息暂存在exchange，return模式无效
+    $mq->setModel('confirm');
+
+    /**
+     *  发送消息
+     *  int $expired 过期时间，单位s
+     *  array $data 消息
+     *  string $routing_key 建议指定routing_key，方便消费脚本区分
+     *  return correlation_id 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
+     */
+    $expired = 10;
+    $data    = ['key' => 'value'];
+    $rk      = 'routing.key';
+    $correlation_id = $mq->later($expired, $data, $rk);
 } catch (\Exception $e) {
     echo $e->getMessage();
 }
