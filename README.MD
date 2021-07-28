@@ -191,9 +191,18 @@ $channel = MQ::connection('default');
 # $queue可以为空，默认取config.php中的defaultQueue
 # $message可以为空，默认ack最近一条message
 #=================================================
-while ($channel->size($queue) > 0) {
-    $message = $channel->pop($queue);
-    $channel->ack($queue, $message);
+while ($channel->size($queue = '') > 0) {
+    $message = $channel->pop($queue = '');
+    $data    = json_decode($message->getBody(), true);
+    if ($data == 'good') {
+        # todo 正常消费后ack
+        $channel->ack();
+    } else {
+        // 拒绝消息
+        $channel->reject();
+        // 转入死信
+        MQ::connection('dlx')->push($data);
+    }
 }
 ```
 
