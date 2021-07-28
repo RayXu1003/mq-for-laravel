@@ -156,7 +156,7 @@ try {
 
     /**
      *  发送消息
-         *  
+     *  
      *  @param int    $expired 过期时间，单位s
      *  @param array  $data    消息
      *  @param string $rk      建议指定routing_key，方便消费脚本区分
