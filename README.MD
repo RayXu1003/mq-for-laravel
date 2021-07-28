@@ -130,9 +130,9 @@ try {
     /**
      *  发送消息
      *
-     *  array $data 消息
-     *  string $routing_key 默认topic模式，需指定routing_key
-     *  return correlation_id 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
+     *  @param array  $data 消息
+     *  @param string $rk   默认topic模式，需指定routing_key
+     *  @return string 唯一值，如6100d7b9324531.68322900；为空代表消息丢失
      */
     $data = ['key' => 'value'];
     $rk   = 'routing.key';
@@ -156,10 +156,11 @@ try {
 
     /**
      *  发送消息
-     *  int $expired 过期时间，单位s
-     *  array $data 消息
-     *  string $routing_key 建议指定routing_key，方便消费脚本区分
-     *  return correlation_id 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
+         *  
+     *  @param int    $expired 过期时间，单位s
+     *  @param array  $data    消息
+     *  @param string $rk      建议指定routing_key，方便消费脚本区分
+     *  return string 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
      */
     $expired = 10;
     $data    = ['key' => 'value'];
