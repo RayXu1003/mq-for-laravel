@@ -26,14 +26,18 @@ return [
             'password' => env('AMQP_PASS', null),
             'vhost'    => env('AMQP_VHOST', '/'),
 
-            #============================================================================================
-            # 一般而言，exchange与queue一一对应，即Direct模式。此时，route中queue可以不填，会自动填充default_queue
-            # 考虑场景通用化，默认启用Topic模式，可兼容Direct模式。最终route需支持exchange对应多个queue
-            #============================================================================================
+            #=====================================================================
+            #  考虑场景通用化，默认启用Topic模式，可兼容Direct模式
+            #=====================================================================
             'default_exchange' => 'mms.cc.exchange',
             'default_queue'    => 'mms.cc.queue',
 
-            // exchange - queues maps
+            #=====================================================================
+            #  exchange - queues maps
+            #  支持exchange对应多个queue
+            #  exchange与queue一对一，则route中的queue可以不填，自动填充default_queue
+            #  eg : exchange => queue OR exchange => [queue1, queue2, queue3]
+            #=====================================================================
             'route' => [
                 // Exchange => Queue
                 //'mms.cc.exchange' => 'mms.cc.queue',
@@ -44,7 +48,10 @@ return [
                 ],
             ],
 
-            // exchange - queue binding
+			#=====================================================================
+            #  exchange - queue binding
+            #  eg : queue => binding_key
+            #=====================================================================
             'binding' => [
                 // queue => binding_key
                 'mms.cc.queue' => 'rex.#',
@@ -124,16 +131,18 @@ use MQ;
 try {
     $mq = MQ::connection('default');
 
-    // 开启confirm或return模式，会影响速率；不关心消息丢失则屏蔽
+    #=====================================================================
+    #  设置channel模式
+    #  不关心消息丢失则屏蔽；开启confirm或return模式，会影响速率
+    #=====================================================================
     $mq->setModel('confirm');
 
-    /**
-     *  发送消息
-     *
-     *  @param array  $data 消息
-     *  @param string $rk   默认topic模式，需指定routing_key
-     *  @return string 唯一值，如6100d7b9324531.68322900；为空代表消息丢失
-     */
+	#=====================================================================
+    #  发送消息
+    #  @param array  $data 消息
+    #  @param string $rk   默认topic模式，需指定routing_key
+    #  @return string 唯一值，如6100d7b9324531.68322900；为空代表消息丢失
+    #=====================================================================
     $data = ['key' => 'value'];
     $rk   = 'routing.key';
     $correlation_id = $mq->push($data, $rk);
@@ -151,17 +160,19 @@ use MQ;
 try {
     $mq = MQ::connection('delayed');
 
-    // 延迟消息暂存在exchange，return模式无效
+    #=====================================================================
+    #  设置channel模式
+    #  延迟消息暂存在exchange，return模式无效
+    #=====================================================================
     $mq->setModel('confirm');
 
-    /**
-     *  发送消息
-     *  
-     *  @param int    $expired 过期时间，单位s
-     *  @param array  $data    消息
-     *  @param string $rk      建议指定routing_key，方便消费脚本区分
-     *  return string 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
-     */
+	#=====================================================================
+    #  发送延迟消息
+    #  @param int    $expired 过期时间，单位s
+    #  @param array  $data    消息
+    #  @param string $rk      建议指定routing_key，方便消费脚本区分
+    #  @return string 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
+    #=====================================================================
     $expired = 10;
     $data    = ['key' => 'value'];
     $rk      = 'routing.key';
@@ -180,23 +191,20 @@ use MQ;
 $channel = MQ::connection('default');	
 
 #=================================================
-# $queue可以为空，默认取config.php中的defaultQueue
-# $callback需返回true/false，队列才能明确是否删除消息    
+#  消费者持续订阅获取单条消息
+#  $callback需返回true/false，队列才能明确是否删除消息    
 #=================================================
-$channel->consume($queue = '', $is_ack = true, function($message){
+$queue = 'queue'; // 可以不传$queue，默认取config.php中的defaultQueue
+$channel->consume($queue, $is_ack = true, function($message){
     try {
         echo $message->getBody() . PHP_EOL;
-        return true;	// 回调为true，队列才删除消息
+        return true; // 回调为true，队列删除消息
     } catch (\Exception $e) {
-        return false;
+        return false; // 回调为false，消息重新入队
     }	
 });
 
-#=================================================
-# 默认不设置$count，等待消费完队列消息
-# 若设置$count，则消费指定个数后，脚本主动退出
-#=================================================
-$channel->start($count = '');	
+$channel->start();	
 ```
 
 * 消费消息（拉模式）
@@ -206,21 +214,23 @@ use MQ;
 
 $channel = MQ::connection('default');	
 
-#=================================================
-# $queue可以为空，默认取config.php中的defaultQueue
-# $message可以为空，默认ack最近一条message
-#=================================================
-while ($channel->size($queue = '') > 0) {
-    $message = $channel->pop($queue = '');
-    $data    = json_decode($message->getBody(), true);
-    if ($data == 'good') {
-        # todo 正常消费后ack
-        $channel->ack();
-    } else {
-        // 拒绝消息
-        $channel->reject();
-        // 转入死信
-        MQ::connection('dlx')->push($data);
+#===================================================================
+#  消费者单条地获取消息，多并发下可能出现意外情况
+#  此模式影响RabbitMQ性能，高吞吐量时建议用推模式
+#===================================================================
+$queue = 'queue'; // 可以不传$queue，默认取config.php中的defaultQueue
+while ($channel->size($queue) > 0) {
+    try {
+        $data = json_decode($channel->pop($queue)->getBody(), true);
+        if ($data == 'good') {
+            # todo 正常消费后ack
+            $channel->ack();
+        } else {
+            $channel->reject(); // 拒绝消息
+            MQ::connection('dlx')->push($data); // 转入死信
+        }
+    } catch (\Exception $e) {
+        echo $e->getMessage();
     }
 }
 ```
