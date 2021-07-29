@@ -30,7 +30,7 @@ return [
             #  考虑场景通用化，默认启用Topic模式，可兼容Direct模式
             #=====================================================================
             'default_exchange' => 'mms.cc.exchange',
-            'default_queue'    => 'mms.cc.queue',
+            'default_queue'    => 'mms.cc.queue1',
 
             #=====================================================================
             #  exchange - queues maps
