@@ -246,3 +246,4 @@ rabbitmqctl set_policy -p / ha "^" '{"ha-mode":"all", "ha-sync-mode":"automatic"
 
 
 
+ 
