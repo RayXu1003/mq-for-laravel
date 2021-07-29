@@ -39,8 +39,6 @@ return [
             #  eg : exchange => queue OR exchange => [queue1, queue2, queue3]
             #=====================================================================
             'route' => [
-                // Exchange => Queue
-                //'mms.cc.exchange' => 'mms.cc.queue',
                 'mms.cc.exchange' => [
                     'mms.cc.queue',
                     'mms.cc.queue2',
@@ -53,7 +51,6 @@ return [
             #  eg : queue => binding_key
             #=====================================================================
             'binding' => [
-                // queue => binding_key
                 'mms.cc.queue' => 'rex.#',
                 'mms.cc.queue2' => 'rex2.#',
                 'mms.cc.queue3' => 'rex3.#'
