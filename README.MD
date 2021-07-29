@@ -40,7 +40,7 @@ return [
             #=====================================================================
             'route' => [
                 'mms.cc.exchange' => [
-                    'mms.cc.queue',
+                    'mms.cc.queue1',
                     'mms.cc.queue2',
                     'mms.cc.queue3'
                 ],
@@ -51,7 +51,7 @@ return [
             #  eg : queue => binding_key
             #=====================================================================
             'binding' => [
-                'mms.cc.queue' => 'rex.#',
+                'mms.cc.queue1' => 'rex1.#',
                 'mms.cc.queue2' => 'rex2.#',
                 'mms.cc.queue3' => 'rex3.#'
             ],
