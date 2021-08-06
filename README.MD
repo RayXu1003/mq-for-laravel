@@ -2,8 +2,11 @@
 
 ## 更新
 
-- 增加高可用策略配置命令
-- 增加延迟队列插件（RabbitMQ 3.7+以上适用）
+* 增加高可用策略配置命令
+* 增加延迟队列插件（RabbitMQ 3.7+以上适用）
+* 增加传统延迟消息方案（delayExchange + DlxExchange）
+* 增加消息flag，用于confirm模式下ack回调成功
+
 
 ## 配置
 
@@ -16,7 +19,6 @@ return [
 
     'connections' => [
 
-        // 业务名称
         'default' => [
             'driver' => 'amqp',
 
@@ -27,16 +29,16 @@ return [
             'vhost'    => env('AMQP_VHOST', '/'),
 
             #=====================================================================
-            #  考虑场景通用化，默认启用Topic模式，可兼容Direct模式
+            # 考虑场景通用化，默认启用Topic模式，可兼容Direct模式
             #=====================================================================
             'default_exchange' => 'mms.cc.exchange',
             'default_queue'    => 'mms.cc.queue1',
 
             #=====================================================================
-            #  exchange - queues maps
-            #  支持exchange对应多个queue
-            #  exchange与queue一对一，则route中的queue可以不填，自动填充default_queue
-            #  eg : exchange => queue OR exchange => [queue1, queue2, queue3]
+            # exchange - queues maps
+            # 支持exchange对应多个queue
+            # exchange与queue一对一，则route中的queue可以不填，自动填充default_queue
+            # eg: exchange => queue OR exchange => [queue1, queue2, queue3]
             #=====================================================================
             'route' => [
                 'mms.cc.exchange' => [
@@ -46,9 +48,9 @@ return [
                 ],
             ],
 
-	    #=====================================================================
-            #  exchange - queue binding
-            #  eg : queue => binding_key
+            #=====================================================================
+            # exchange - queue binding
+            # queue => binding_key
             #=====================================================================
             'binding' => [
                 'mms.cc.queue1' => 'rex1.#',
@@ -56,8 +58,12 @@ return [
                 'mms.cc.queue3' => 'rex3.#'
             ],
         ],
-        
-        // 死信
+
+        #=====================================================================
+        # 死信
+        # 使用场景：consumer消费队列中存在异常消息或不可处理消息时，
+        #         将这个消息重新发布到设置的DLX，用于后续处理
+        #=====================================================================
         'dlx' => [
             'driver' => 'amqp',
 
@@ -67,11 +73,12 @@ return [
             'password' => env('AMQP_PASS', null),
             'vhost'    => env('AMQP_VHOST', '/'),
 
-            // 定义死信交换器类型
             'exchange_params' => [
-                'type' => 'fanout',
+                'type'        => 'fanout',
+                'passive'     => false,
+                'durable'     => true,
+                'auto_delete' => false,
             ],
-
             'default_exchange' => 'dlx.exchange',
             'default_queue'    => 'dlx.queue',
 
@@ -80,8 +87,33 @@ return [
                 'dlx.exchange' => 'dlx.queue'
             ],
         ],
-        
-        // 延迟（需安装插件）
+
+        #=====================================================================
+        # 延迟消息 - 需安装插件
+        # 使用场景：延迟消息量不大，且不在乎高可用
+        #=====================================================================
+        'easy_delayed' => [
+            'driver' => 'amqp',
+
+            'host'     => env('AMQP_HOST', '127.0.0.1'),
+            'port'     => env('AMQP_PORT', 5672),
+            'login'    => env('AMQP_USER', 'admin'),
+            'password' => env('AMQP_PASS', null),
+            'vhost'    => env('AMQP_VHOST', '/'),
+
+            'default_exchange' => 'easy.delayed.exchange',
+            'default_queue'    => 'easy.delayed.queue',
+
+            'route' => [
+                'easy.delayed.exchange' => 'easy.delayed.queue'
+            ],
+        ],
+
+        #=====================================================================
+        # 经典延迟队列
+        # 根据用于延迟的exchange、queue，
+        # 会对应自动生成相同属性，带前缀'dlx.'的死信exchange、queue
+        #=====================================================================
         'delayed' => [
             'driver' => 'amqp',
 
@@ -92,12 +124,19 @@ return [
             'vhost'    => env('AMQP_VHOST', '/'),
 
             'default_exchange' => 'delayed.exchange',
-            'default_queue'    => 'delayed.queue',
 
-            // exchange - queues maps
             'route' => [
-                'delayed.exchange' => 'delayed.queue'
+                'delayed.exchange' => [
+                    'delayed.queue.10s',
+                    'delayed.queue.10min',
+                    'delayed.queue.1h',
+                ]
             ],
+            'binding' => [
+                'delayed.queue.10s'   => '10s',
+                'delayed.queue.10min' => '10min',
+                'delayed.queue.1h'    => '1h'
+            ]
         ],
     ],
 ];
@@ -130,7 +169,7 @@ try {
 
     #=====================================================================
     #  设置channel模式
-    #  不关心消息丢失则屏蔽；开启confirm或return模式，会影响速率
+    #  不关心消息丢失则屏蔽；开启confirm或return模式，速率下降250倍左右
     #=====================================================================
     $mq->setModel('confirm');
 
@@ -148,14 +187,39 @@ try {
 }
 
 ```
-
-* 生产延迟消息
+* 生产延迟消息（经典版）
 
 ```
 use MQ;
 
 try {
     $mq = MQ::connection('delayed');
+    $mq->setModel('confirm');
+
+    #=====================================================================
+    #  发送延迟消息
+    #  @param int    $expired 过期时间，单位s
+    #  @param array  $data    消息
+    #  @param string $rk      建议指定routing_key，方便消费脚本区分
+    #  @return string 返回唯一值，如6100d7b9324531.68322900；为空代表消息丢失
+    #=====================================================================
+    $expired = 10;
+    $data    = ['key' => 'value'];
+    $rk      = '10s';
+    $correlation_id = $mq->delay($expired, $data, $rk);
+} catch (\Exception $e) {
+    echo $e->getMessage();
+}
+
+```
+
+* 生产延迟消息（插件版）
+
+```
+use MQ;
+
+try {
+    $mq = MQ::connection('easy_delayed');
 
     #=====================================================================
     #  设置channel模式
@@ -173,7 +237,7 @@ try {
     $expired = 10;
     $data    = ['key' => 'value'];
     $rk      = 'routing.key';
-    $correlation_id = $mq->later($expired, $data, $rk);
+    $correlation_id = $mq->easy_delay($expired, $data, $rk);
 } catch (\Exception $e) {
     echo $e->getMessage();
 }

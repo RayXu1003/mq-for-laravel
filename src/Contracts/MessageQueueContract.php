@@ -37,7 +37,7 @@ abstract class MessageQueueContract
     /**
      * push一条延时消息
      */
-    abstract public function later($delay, $message, $queue = null, $option=[]);
+    abstract public function delay($delay, $message, $queue = null, $option=[]);
 
     /**
      * 弹出一条消息

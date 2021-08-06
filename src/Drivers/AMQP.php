@@ -14,11 +14,6 @@ class AMQP extends MessageQueueContract
 {
     use AMQPQueueTrait;
 
-    /**
-     * Used for retry logic, to set the retries on the message metadata instead of the message body.
-     */
-    const ATTEMPT_COUNT_HEADERS_KEY = 'attempts_count';
-
     private $lastMessages = [];
     private $lastMessage = '';
 
@@ -27,11 +22,7 @@ class AMQP extends MessageQueueContract
      *
      * @var array
      */
-    protected static $models = [
-                         'default',
-                         'confirm',
-                         'return'
-                     ];
+    protected static $models = ['default', 'confirm', 'return'];
 
     /**
      * AMQP constructor.
@@ -89,8 +80,13 @@ class AMQP extends MessageQueueContract
         return $this->pushRaw($message, $routing_key, $exchange, $option);
     }
 
-    public function later($delay, $message, $routing_key = '', $exchange = null, $option = []){
+    public function delay($delay, $message, $routing_key = '', $exchange = null, $option = []){
         $option['delay'] = $this->secondsUntil($delay);
+        return $this->pushRaw($message, $routing_key, $exchange, $option);
+    }
+
+    public function easy_delay($delay, $message, $routing_key = '', $exchange = null, $option = []){
+        $option['easy_delay'] = $this->secondsUntil($delay);
         return $this->pushRaw($message, $routing_key, $exchange, $option);
     }
 
