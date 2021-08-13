@@ -183,7 +183,7 @@ try {
     $rk   = 'routing.key';
     $correlation_id = $mq->push($data, $rk);
 } catch (\Exception $e) {
-    echo $e->getMessage();
+    echo 'HaHa~ ' . $e->getMessage();
 }
 
 ```
@@ -208,7 +208,7 @@ try {
     $rk      = '10s';
     $correlation_id = $mq->delay($expired, $data, $rk);
 } catch (\Exception $e) {
-    echo $e->getMessage();
+    echo 'HaHa~ ' . $e->getMessage();
 }
 
 ```
@@ -239,7 +239,7 @@ try {
     $rk      = 'routing.key';
     $correlation_id = $mq->easy_delay($expired, $data, $rk);
 } catch (\Exception $e) {
-    echo $e->getMessage();
+    echo 'HaHa~ ' . $e->getMessage();
 }
 
 ```
@@ -300,11 +300,7 @@ while ($channel->size($queue) > 0) {
 * please make sure you upgrade to Composer 2+.
 * 设置rabbitMQ高可用策略 
 ```
-rabbitmqctl set_policy -p / ha "^" '{"ha-mode":"all", "ha-sync-mode":"automatic"}'
+# vhost填写对应的AMQP_VHOST
+rabbitmqctl set_policy -p vhost ha "^" '{"ha-mode":"all", "ha-sync-mode":"automatic"}'
 ```
 * [延迟队列官网插件](https://www.rabbitmq.com/community-plugins.html)
-
-
-
-
- 

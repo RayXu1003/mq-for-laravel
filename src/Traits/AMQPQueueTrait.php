@@ -371,7 +371,7 @@ trait AMQPQueueTrait {
         ];
 
         if (isset($options['easy_delay']) && $options['easy_delay'] > 0) {
-            $properties['application_headers'] = new AMQPTable(['x-delay' => $options['delay'] * 1000]);
+            $properties['application_headers'] = new AMQPTable(['x-delay' => $options['easy_delay'] * 1000]);
         }
 
         if (isset($options['delay']) && $options['delay'] > 0) {
