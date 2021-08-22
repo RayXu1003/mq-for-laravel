@@ -1,16 +1,16 @@
-使用Laravel Facade的形式定义RabbitMQ，提供简洁、易记的语法，超简单。
+使用 Laravel Facade 的形式定义 RabbitMQ ，提供**简洁、易记的语法，超简单**。
 
 ## 更新
 
 * 增加高可用策略配置命令
-* 增加延迟队列插件（RabbitMQ 3.7+以上适用）
-* 增加传统延迟消息方案（delayExchange + DlxExchange）
-* 增加消息flag，用于confirm模式下ack回调成功
+* 增加延迟队列插件（`RabbitMQ 3.7+` 以上适用）
+* 增加传统延迟消息方案（`delayExchange` + `DlxExchange`）
+* 增加消息 `flag`，用于 `confirm` 模式下 `ack` 回调成功
 
 
 ## 配置
 
-* 添加config/mq.php
+* 添加 `config/mq.php`
 
 ```
 return [
@@ -142,7 +142,7 @@ return [
 ];
 ```
 
-* 增加配置项，config/app.php
+* 增加配置项，`config/app.php`
 
 ```
 'providers' => [
@@ -255,7 +255,7 @@ $channel = MQ::connection('default');
 #  消费者持续订阅获取单条消息
 #  $callback需返回true/false，队列才能明确是否删除消息    
 #=================================================
-$queue = 'queue'; // 可以不传$queue，默认取config.php中的defaultQueue
+$queue = 'queue'; // 可以不传$queue，默认取 config/mq.php 中的defaultQueue
 $channel->consume($queue, $is_ack = true, function($message){
     try {
         echo $message->getBody() . PHP_EOL;
@@ -279,7 +279,7 @@ $channel = MQ::connection('default');
 #  消费者单条地获取消息，多并发下可能出现意外情况
 #  此模式影响RabbitMQ性能，高吞吐量时建议用推模式
 #===================================================================
-$queue = 'queue'; // 可以不传$queue，默认取config.php中的defaultQueue
+$queue = 'queue'; // 可以不传$queue，默认取 config/mq.php 中的defaultQueue
 while ($channel->size($queue) > 0) {
     try {
         $data = json_decode($channel->pop($queue)->getBody(), true);
@@ -297,8 +297,8 @@ while ($channel->size($queue) > 0) {
 ```
 
 ## 其它重要说明
-* please make sure you upgrade to Composer 2+.
-* 设置rabbitMQ高可用策略 
+* please make sure you upgrade to **Composer 2+**.
+* 设置 RabbitMQ **高可用策略** 
 ```
 # vhost填写对应的AMQP_VHOST
 rabbitmqctl set_policy -p vhost ha "^" '{"ha-mode":"all", "ha-sync-mode":"automatic"}'
