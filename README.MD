@@ -152,7 +152,7 @@ return [
 
 'aliases' => [
     // MQ
-    'MQ' => \Rex\MessageQueue\MQFacade::class,
+    'MQ' => \Rex\MessageQueue\Facades\MQ::class,
 ],
 ```
 
@@ -162,7 +162,8 @@ return [
 * 生产消息
 
 ```
-use MQ;
+use Rex\MessageQueue\Facades\MQ;
+use Rex\MessageQueue\Objects\PublishModel;
 
 try {
     $mq = MQ::connection('default');
@@ -171,7 +172,7 @@ try {
     #  设置channel模式
     #  不关心消息丢失则屏蔽；开启confirm或return模式，速率下降250倍左右
     #=====================================================================
-    $mq->setModel('confirm');
+    $mq->setModel(PublishModel::CONFIRM);
 
     #=====================================================================
     #  发送消息
@@ -190,11 +191,11 @@ try {
 * 生产延迟消息（经典版）
 
 ```
-use MQ;
+use Rex\MessageQueue\Facades\MQ;
 
 try {
     $mq = MQ::connection('delayed');
-    $mq->setModel('confirm');
+    $mq->setModel(PublishModel::CONFIRM);
 
     #=====================================================================
     #  发送延迟消息
@@ -216,7 +217,7 @@ try {
 * 生产延迟消息（插件版）
 
 ```
-use MQ;
+use Rex\MessageQueue\Facades\MQ;
 
 try {
     $mq = MQ::connection('easy_delayed');
@@ -225,7 +226,7 @@ try {
     #  设置channel模式
     #  延迟消息暂存在exchange，return模式无效
     #=====================================================================
-    $mq->setModel('confirm');
+    $mq->setModel(PublishModel::CONFIRM);
 
     #=====================================================================
     #  发送延迟消息
@@ -247,7 +248,7 @@ try {
 * 消费消息（推模式）
 
 ```
-use MQ;
+use Rex\MessageQueue\Facades\MQ;
 
 $channel = MQ::connection('default');	
 
