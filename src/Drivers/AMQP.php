@@ -3,6 +3,7 @@
 namespace Rex\MessageQueue\Drivers;
 
 use Rex\MessageQueue\Contracts\MessageQueueContract;
+use Rex\MessageQueue\Objects\PublishModel;
 use Rex\MessageQueue\Traits\AMQPQueueTrait;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -18,11 +19,19 @@ class AMQP extends MessageQueueContract
     private $lastMessage = '';
 
     /**
-     * 消息发布模式
-     *
-     * @var array
+     * @var string
      */
-    protected static $models = ['default', 'confirm', 'return'];
+    protected $model;
+
+    /**
+     * @var mixed
+     */
+    protected $routeMap;
+
+    /**
+     * @var mixed
+     */
+    protected $bindingMap;
 
     /**
      * AMQP constructor.
@@ -61,7 +70,7 @@ class AMQP extends MessageQueueContract
 
         $this->channel = $this->getChannel();
 
-        $this->model = 'default';   // 发布消息模式
+        $this->model = PublishModel::DEFAULT;   // 发布消息模式
     }
 
     /**
@@ -70,21 +79,53 @@ class AMQP extends MessageQueueContract
      * @param $model
      */
     public function setModel($model){
-        if (in_array($model, self::$models)) {
+        if ((new PublishModel())->isValid($model)) {
             $this->model = $model;
             $this->channel->confirm_select();
         }
     }
 
+    /**
+     * 发送消息
+     *
+     * @param $message
+     * @param string $routing_key
+     * @param null $exchange
+     * @param array $option
+     * @return null
+     * @throws \Exception
+     */
     public function push($message, $routing_key = '', $exchange = null, $option = []){
         return $this->pushRaw($message, $routing_key, $exchange, $option);
     }
 
+    /**
+     * 发送延时消息
+     *
+     * @param $delay
+     * @param $message
+     * @param string $routing_key
+     * @param null $exchange
+     * @param array $option
+     * @return null
+     * @throws \Exception
+     */
     public function delay($delay, $message, $routing_key = '', $exchange = null, $option = []){
         $option['delay'] = $this->secondsUntil($delay);
         return $this->pushRaw($message, $routing_key, $exchange, $option);
     }
 
+    /**
+     * 发送延时消息（简易插件版本）
+     *
+     * @param $delay
+     * @param $message
+     * @param string $routing_key
+     * @param null $exchange
+     * @param array $option
+     * @return null
+     * @throws \Exception
+     */
     public function easy_delay($delay, $message, $routing_key = '', $exchange = null, $option = []){
         $option['easy_delay'] = $this->secondsUntil($delay);
         return $this->pushRaw($message, $routing_key, $exchange, $option);
@@ -123,6 +164,7 @@ class AMQP extends MessageQueueContract
      *
      * @param string $queue
      * @param null $message
+     * @return void
      * @throws \Exception
      */
     public function ack($queue = '', $message = null){
@@ -140,6 +182,13 @@ class AMQP extends MessageQueueContract
         }
     }
 
+    /**
+     * 拒绝消息，并且重新入队
+     *
+     * @param string $queue
+     * @param null $message
+     * @throws \Exception
+     */
     public function reject($queue = '', $message = null){
         // 如果指定Message，则Ack该message
         if ($message) {
@@ -155,6 +204,13 @@ class AMQP extends MessageQueueContract
         }
     }
 
+    /**
+     * 重新入队
+     *
+     * @param string $queue
+     * @param null $message
+     * @throws \Exception
+     */
     public function requeue($queue = '', $message = null){
         // 如果指定Message，则Ack该message
         if ($message) {
@@ -178,9 +234,19 @@ class AMQP extends MessageQueueContract
      *
      * @param null $queue
      * @param bool $is_ack
-     * @param array $callback
+     * @param callable $callback
+     * @throws \Exception
      */
     public function consume($queue = null, $is_ack = true, $callback){
+        // re-arrange parameter according to number of args
+        if (is_callable($queue)) {
+           list($queue, $is_ack, $callback) = [null, true, $queue];
+        } elseif (is_callable($is_ack)) {
+            list($queue, $is_ack, $callback) = [null, $queue, $is_ack];
+        } elseif (!is_callable($callback)) {
+            throw new \Exception("parameter callback is not callable");
+        }
+
         $queue = $this->getQueueName($queue);
         $cTag  = $this->getConsumerTag($queue);
 
@@ -229,6 +295,9 @@ class AMQP extends MessageQueueContract
         return $message ? $message->delivery_info['delivery_tag'] : null;
     }
 
+    /**
+     * 关闭链接
+     */
     public function close(){
         // $this->channel->basic_cancel($this->getConsumerTag(), false, true);
         if (!is_null($this->channel)) $this->channel->close();
@@ -236,6 +305,9 @@ class AMQP extends MessageQueueContract
         $this->connection->close();
     }
 
+    /**
+     * 重新链接
+     */
     public function reconnect(){
         $this->connection->reconnect();
         $this->channel = $this->getChannel();

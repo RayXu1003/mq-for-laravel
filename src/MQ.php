@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Facade;
  *
  * @method static AMQP connection(string $name = null)
  *
- * Class MQFacade
+ * Class MQ
  * @package App\Services\MessageQueue\
  * @see MessageQueueManager
  */
-class MQFacade extends Facade
+class MQ extends Facade
 {
     protected static function getFacadeAccessor()
     {
