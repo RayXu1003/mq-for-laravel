@@ -60,7 +60,7 @@ function consumePush()
     # $queue可以为空，默认取config.php中的defaultQueue
     # $callback需返回true/false，队列才能明确是否删除消息
     #=================================================
-    $channel->consume($queue = '', $is_ack = true, function ($message) {
+    $channel->consume(function ($message) {
         try {
             echo $message->getBody() . PHP_EOL;
             return true; // 回调为true，队列才删除消息

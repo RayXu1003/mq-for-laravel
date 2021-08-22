@@ -237,7 +237,7 @@ class AMQP extends MessageQueueContract
      * @param callable $callback
      * @throws \Exception
      */
-    public function consume($queue = null, $is_ack = true, $callback){
+    public function consume($queue = null, $is_ack = true, $callback = null){
         // re-arrange parameter according to number of args
         if (is_callable($queue)) {
            list($queue, $is_ack, $callback) = [null, true, $queue];
