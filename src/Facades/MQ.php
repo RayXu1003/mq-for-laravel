@@ -1,6 +1,6 @@
 <?php
 
-namespace Rex\MessageQueue;
+namespace Rex\MessageQueue\Facades;
 
 use Rex\MessageQueue\Drivers\AMQP;
 use Illuminate\Support\Facades\Facade;
