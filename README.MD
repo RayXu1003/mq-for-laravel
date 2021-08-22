@@ -192,6 +192,7 @@ try {
 
 ```
 use Rex\MessageQueue\Facades\MQ;
+use Rex\MessageQueue\Objects\PublishModel;
 
 try {
     $mq = MQ::connection('delayed');
@@ -218,6 +219,7 @@ try {
 
 ```
 use Rex\MessageQueue\Facades\MQ;
+use Rex\MessageQueue\Objects\PublishModel;
 
 try {
     $mq = MQ::connection('easy_delayed');
