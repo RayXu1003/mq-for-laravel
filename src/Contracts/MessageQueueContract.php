@@ -47,7 +47,7 @@ abstract class MessageQueueContract
     /**
      * 指定闭包回调函数来消费队列
      */
-    abstract public function consume($queue = null, $is_ack = true, $callback);
+    abstract public function consume($queue = null, $callback);
 
     /**
      * 和consume配合使用，启动消费

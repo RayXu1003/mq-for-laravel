@@ -77,6 +77,7 @@ class AMQP extends MessageQueueContract
      * 设置消息发布模式
      *
      * @param $model
+     * @throws \ReflectionException
      */
     public function setModel($model){
         if ((new PublishModel())->isValid($model)) {
@@ -233,17 +234,15 @@ class AMQP extends MessageQueueContract
      * 使用该机制比主动使用basic_get获取数据的速度要快很多
      *
      * @param null $queue
-     * @param bool $is_ack
      * @param callable $callback
      * @throws \Exception
      */
-    public function consume($queue = null, $is_ack = true, $callback = null){
+    public function consume($queue = null, $callback = null){
         // re-arrange parameter according to number of args
         if (is_callable($queue)) {
-           list($queue, $is_ack, $callback) = [null, true, $queue];
-        } elseif (is_callable($is_ack)) {
-            list($queue, $is_ack, $callback) = [null, $queue, $is_ack];
-        } elseif (!is_callable($callback)) {
+           list($queue, $callback) = [null, $queue];
+        }
+        if (!is_callable($callback)) {
             throw new \Exception("parameter callback is not callable");
         }
 
@@ -251,9 +250,9 @@ class AMQP extends MessageQueueContract
         $cTag  = $this->getConsumerTag($queue);
 
         $this->channel->basic_qos(null, 1, null);
-        $this->channel->basic_consume($queue, $cTag, false, false, false, false, function($message) use ($callback, $is_ack) {
+        $this->channel->basic_consume($queue, $cTag, false, false, false, false, function($message) use ($callback) {
             $result = call_user_func($callback, $message);
-            if ($is_ack && $result) {
+            if ($result) {
                 $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
             }
         });
