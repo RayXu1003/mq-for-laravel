@@ -11,6 +11,8 @@ trait AMQPQueueTrait {
 
     protected $channel;
 
+    protected $defaultExchange;
+
     protected $declareExchange;
     protected $declareBindQueue;
     protected $sleepOnError;

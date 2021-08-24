@@ -14,6 +14,16 @@ class MessageQueueManager
 
     protected $app;
 
+    /**
+     * @var array
+     */
+    protected $connections = [];
+
+    /**
+     * @var array
+     */
+    protected $connectors= [];
+
     public function __construct($app)
     {
         $this->app = $app;
