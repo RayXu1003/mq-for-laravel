@@ -393,7 +393,7 @@ trait AMQPQueueTrait {
                 $msg->body,
                 $msg->has('correlation_id') ? $msg->get('correlation_id') : '0'
             );
-            echo $ack;
+            
             Log::info($ack);
         };
     }
@@ -406,7 +406,7 @@ trait AMQPQueueTrait {
                 $msg->getDeliveryTag(),
                 $msg->body
             );
-            echo $nack;
+            
             Log::info($nack);
         };
     }
@@ -422,7 +422,7 @@ trait AMQPQueueTrait {
                 $exchange,
                 $routing_key
             );
-            echo $return;
+            
             Log::error($return);
         };
     }
