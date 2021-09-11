@@ -36,7 +36,16 @@ class AMQPConnector implements ConnectorInterface
                 $config['port'],
                 $config['login'],
                 $config['password'],
-                $config['vhost']
+                $config['vhost'],
+                false,
+                'AMQPLAIN',
+                null,
+                'en_US',
+                3.0,
+                3.0,
+                null,
+                false,
+                120
             );
         }
 
