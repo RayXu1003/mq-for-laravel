@@ -311,4 +311,14 @@ class AMQP extends MessageQueueContract
         $this->connection->reconnect();
         $this->channel = $this->getChannel();
     }
+
+    /**
+     * 发送心跳
+     *
+     * @throws \PhpAmqpLib\Exception\AMQPIOException
+     */
+    public function checkHeartBeat()
+    {
+        $this->connection->checkHeartBeat();
+    }
 }

@@ -2,6 +2,7 @@
 
 ## 更新
 
+* 增加check heartbeat
 * 增加高可用策略配置命令
 * 增加延迟队列插件（`RabbitMQ 3.7+` 以上适用）
 * 增加传统延迟消息方案（`delayExchange` + `DlxExchange`）
