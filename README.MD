@@ -307,8 +307,8 @@ use Rex\MessageQueue\Facades\MQ;
 
 $channel = MQ::connection('default');	
 // 注册心跳
-$heartbeatHandler = new PCNTLHeartbeatSender($channel->getConnection());
-$heartbeatHandler->register();
+$heartbeatHandler = new PCNTLHeartbeatSender($channel->getConnection());  // Windows下没有pcntl扩展 , 在Windows测试代码可以注释掉这行,上测试或者生产把这行加回来
+$heartbeatHandler->register(); // Windows下没有pcntl扩展 , 在Windows测试代码可以注释掉这行,上测试或者生产把这行加回来
 #=================================================
 #  消费者持续订阅获取单条消息
 #  $callback需返回true/false，队列才能明确是否删除消息    
@@ -333,8 +333,8 @@ use MQ;
 
 $channel = MQ::connection('default');	
 // 注册心跳
-$heartbeatHandler = new PCNTLHeartbeatSender($channel->getConnection());
-$heartbeatHandler->register();
+$heartbeatHandler = new PCNTLHeartbeatSender($channel->getConnection());  //Windows下没有pcntl扩展 , 在Windows测试代码可以注释掉这行,上测试或者生产把这行加回来
+$heartbeatHandler->register();  // Windows下没有pcntl扩展 , 在Windows测试代码可以注释掉这行,上测试或者生产把这行加回来
 #===================================================================
 #  消费者单条地获取消息，多并发下可能出现意外情况
 #  此模式影响RabbitMQ性能，高吞吐量时建议用推模式
